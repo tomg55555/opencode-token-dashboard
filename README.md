@@ -13,6 +13,7 @@ OpenCode plugin that adds a styled token analytics dashboard and a slash command
   - top sessions by token count
 
 The plugin reads your local OpenCode databases:
+
 - `~/.local/share/opencode/opencode.db`
 - `~/.local/share/opencode/opencode-local.db`
 
@@ -30,13 +31,12 @@ bun install
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "file:///Users/tommasogarzaro/Developer/opencode-token-dashboard/index.js"
+    "file:///<Full-Plugin-Path>/opencode-token-dashboard/index.js"
   ]
 }
 ```
 
 3) Restart OpenCode.
-
 4) In a session, run:
 
 ```text
@@ -68,6 +68,7 @@ bun install
 - `includeLocal` (boolean, default `true`)
 
 For slash usage, positional arguments map as:
+
 - first arg -> `days`
 - second arg -> `topSessions`
 
