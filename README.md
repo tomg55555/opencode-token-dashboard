@@ -49,6 +49,36 @@ bun install
 /token-usage 30 10
 ```
 
+## Install from npm (recommended for teams)
+
+1) Publish package (maintainer only):
+
+```bash
+npm publish --access public
+```
+
+2) Add plugin package in OpenCode config `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "opencode-token-dashboard"
+  ]
+}
+```
+
+3) Restart OpenCode.
+
+4) Run the slash command:
+
+```text
+/token-usage
+```
+
+This is the easiest installation path for coding agents and teammates because
+OpenCode handles plugin dependency installation automatically.
+
 ## Usage examples
 
 - Slash command:
@@ -94,4 +124,14 @@ OPENCODE_DB_PATH="/custom/path/opencode.db" opencode
   - Verify DB files exist in `~/.local/share/opencode/`
   - Check custom env paths if you override defaults
 - Dependency errors:
-  - Run `bun install` again in this plugin directory
+  - Local plugin path: run `bun install` again in this plugin directory
+  - npm plugin path: remove cached plugin and restart OpenCode
+
+## Publishing checklist (maintainer)
+
+```bash
+npm whoami
+npm publish --access public
+```
+
+If `npm whoami` fails, run `npm login` first.

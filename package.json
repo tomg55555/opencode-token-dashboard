@@ -2,10 +2,34 @@
   "name": "opencode-token-dashboard",
   "version": "0.1.0",
   "description": "OpenCode plugin that provides token usage analytics.",
+  "keywords": [
+    "opencode",
+    "plugin",
+    "tokens",
+    "analytics",
+    "dashboard"
+  ],
+  "author": "Tommaso Garzaro",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomg55555/opencode-token-dashboard.git"
+  },
+  "homepage": "https://github.com/tomg55555/opencode-token-dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/tomg55555/opencode-token-dashboard/issues"
+  },
   "type": "module",
   "main": "index.ts",
   "exports": "./index.ts",
+  "files": [
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@opencode-ai/plugin": "^1.2.24",
     "cli-table3": "^0.6.3"
