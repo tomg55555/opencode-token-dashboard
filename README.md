@@ -51,13 +51,11 @@ bun install
 
 ## Install from npm (recommended for teams)
 
-1) Publish package (maintainer only):
-
 ```bash
 npm publish --access public
 ```
 
-2) Add plugin package in OpenCode config `~/.config/opencode/opencode.json`:
+Add plugin package in OpenCode config `~/.config/opencode/opencode.json`:
 
 ```json
 {
@@ -69,7 +67,6 @@ npm publish --access public
 ```
 
 3) Restart OpenCode.
-
 4) Run the slash command:
 
 ```text
