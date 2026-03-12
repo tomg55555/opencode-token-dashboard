@@ -31,7 +31,7 @@ bun install
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "file:///<Full-Plugin-Path>/opencode-token-dashboard/index.js"
+    "file:///<Full-Plugin-Path>/opencode-token-dashboard/index.ts"
   ]
 }
 ```

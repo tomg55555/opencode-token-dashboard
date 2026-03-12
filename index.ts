@@ -1,4 +1,4 @@
-import { tool } from "@opencode-ai/plugin"
+import { tool, type Plugin } from "@opencode-ai/plugin"
 import { Database } from "bun:sqlite"
 import Table from "cli-table3"
 import { existsSync } from "node:fs"
@@ -12,6 +12,104 @@ const COMMAND_NAME = "token-usage"
 
 const numberFormat = new Intl.NumberFormat("en-US")
 const z = tool.schema
+
+type SourceID = "main" | "local"
+
+type TokenUsageArgs = {
+  days: number
+  topSessions: number
+  includeMain: boolean
+  includeLocal: boolean
+}
+
+type SourceCandidate = {
+  id: SourceID
+  path: string
+  enabled: boolean
+}
+
+type SourceWithDB = SourceCandidate & {
+  db: Database
+}
+
+type SummaryRow = {
+  start_time: number | null
+  end_time: number | null
+  assistant_messages: number | null
+  sessions: number | null
+  total_tokens: number | null
+  input_tokens: number | null
+  output_tokens: number | null
+  reasoning_tokens: number | null
+  cache_read_tokens: number | null
+  cache_write_tokens: number | null
+}
+
+type ModelRow = {
+  provider: string | null
+  model: string | null
+  assistant_messages: number | null
+  total_tokens: number | null
+  input_tokens: number | null
+  output_tokens: number | null
+  reasoning_tokens: number | null
+  cache_read_tokens: number | null
+  cache_write_tokens: number | null
+}
+
+type SessionRow = {
+  session_id: string | null
+  title: string | null
+  directory: string | null
+  assistant_messages: number | null
+  total_tokens: number | null
+}
+
+type SessionIDRow = {
+  session_id: string | null
+}
+
+type Totals = {
+  startMs: number | null
+  endMs: number | null
+  assistantMessages: number
+  totalTokens: number
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+}
+
+type ModelAggregate = {
+  provider: string
+  model: string
+  assistantMessages: number
+  totalTokens: number
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+}
+
+type SessionAggregate = {
+  source: SourceID
+  title: string
+  directory: string
+  assistantMessages: number
+  totalTokens: number
+}
+
+type ConfigWithCommands = {
+  command?: Record<
+    string,
+    {
+      description?: string
+      template: string
+    }
+  >
+}
 
 const ASCII_BORDER = {
   top: "-",
@@ -31,44 +129,43 @@ const ASCII_BORDER = {
   middle: "|",
 }
 
-function resolveHome(input) {
-  if (!input) return input
+function resolveHome(input: string): string {
   if (input === "~") return homedir()
   if (input.startsWith("~/")) return path.join(homedir(), input.slice(2))
   return input
 }
 
-function normalizePath(input) {
+function normalizePath(input: string): string {
   return path.resolve(resolveHome(input))
 }
 
-function toNumber(value) {
+function toNumber(value: unknown): number {
   if (value === null || value === undefined) return 0
   const asNumber = Number(value)
   return Number.isFinite(asNumber) ? asNumber : 0
 }
 
-function formatNumber(value) {
+function formatNumber(value: number): string {
   return numberFormat.format(Math.round(value))
 }
 
-function formatPercent(value) {
+function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
-function formatTime(ms) {
+function formatTime(ms: number | null): string {
   if (!ms) return "n/a"
   return new Date(ms).toISOString().replace("T", " ").replace("Z", " UTC")
 }
 
-function truncateText(input, max) {
+function truncateText(input: unknown, max: number): string {
   const text = String(input ?? "")
   if (text.length <= max) return text
   if (max <= 3) return text.slice(0, max)
   return `${text.slice(0, max - 3)}...`
 }
 
-function openDatabase(filePath) {
+function openDatabase(filePath: string): Database | null {
   if (!filePath || !existsSync(filePath)) return null
   try {
     return new Database(filePath, { readonly: true })
@@ -77,7 +174,7 @@ function openDatabase(filePath) {
   }
 }
 
-function querySummary(db, sinceMs) {
+function querySummary(db: Database, sinceMs: number): SummaryRow {
   const stmt = db.prepare(`
     SELECT
       min(time_created) AS start_time,
@@ -94,10 +191,10 @@ function querySummary(db, sinceMs) {
     WHERE time_created >= ?
       AND json_extract(data, '$.tokens.total') IS NOT NULL
   `)
-  return stmt.get(sinceMs)
+  return stmt.get(sinceMs) as SummaryRow
 }
 
-function queryModels(db, sinceMs) {
+function queryModels(db: Database, sinceMs: number): ModelRow[] {
   const stmt = db.prepare(`
     SELECT
       json_extract(data, '$.providerID') AS provider,
@@ -114,10 +211,10 @@ function queryModels(db, sinceMs) {
       AND json_extract(data, '$.tokens.total') IS NOT NULL
     GROUP BY provider, model
   `)
-  return stmt.all(sinceMs)
+  return stmt.all(sinceMs) as ModelRow[]
 }
 
-function querySessions(db, sinceMs) {
+function querySessions(db: Database, sinceMs: number): SessionRow[] {
   const stmt = db.prepare(`
     SELECT
       m.session_id AS session_id,
@@ -131,28 +228,33 @@ function querySessions(db, sinceMs) {
       AND json_extract(m.data, '$.tokens.total') IS NOT NULL
     GROUP BY m.session_id
   `)
-  return stmt.all(sinceMs)
+  return stmt.all(sinceMs) as SessionRow[]
 }
 
-function querySessionIds(db, sinceMs) {
+function querySessionIds(db: Database, sinceMs: number): SessionIDRow[] {
   const stmt = db.prepare(`
     SELECT DISTINCT session_id AS session_id
     FROM message
     WHERE time_created >= ?
       AND json_extract(data, '$.tokens.total') IS NOT NULL
   `)
-  return stmt.all(sinceMs)
+  return stmt.all(sinceMs) as SessionIDRow[]
 }
 
-function createTable(options) {
+function createTable(options: Record<string, unknown>) {
   return new Table({
-    ...options,
+    ...(options as object),
     chars: ASCII_BORDER,
     style: { head: [], border: [] },
   })
 }
 
-function buildOverviewTable(totals, sessionCount, avgTokensPerMessage, cacheReadPercent) {
+function buildOverviewTable(
+  totals: Totals,
+  sessionCount: number,
+  avgTokensPerMessage: number,
+  cacheReadPercent: string,
+): string {
   const table = createTable({ head: ["Metric", "Value"] })
   table.push(["Total tokens", formatNumber(totals.totalTokens)])
   table.push(["Input tokens", formatNumber(totals.inputTokens)])
@@ -166,7 +268,7 @@ function buildOverviewTable(totals, sessionCount, avgTokensPerMessage, cacheRead
   return table.toString()
 }
 
-function buildModelTable(modelRows) {
+function buildModelTable(modelRows: ModelAggregate[]): string {
   const table = createTable({
     head: [
       "Provider",
@@ -197,7 +299,7 @@ function buildModelTable(modelRows) {
   return table.toString()
 }
 
-function buildSessionTable(topSessions) {
+function buildSessionTable(topSessions: SessionAggregate[]): string {
   const table = createTable({
     head: ["Source", "Title", "Directory", "Messages", "Total"],
     colAligns: ["left", "left", "left", "right", "right"],
@@ -216,29 +318,30 @@ function buildSessionTable(topSessions) {
   return table.toString()
 }
 
-function ensureCommand(config) {
+function ensureCommand(config: unknown): void {
   if (!config || typeof config !== "object") return
-  config.command ??= {}
-  if (config.command[COMMAND_NAME]) return
-  config.command[COMMAND_NAME] = {
+  const typedConfig = config as ConfigWithCommands
+  typedConfig.command ??= {}
+  if (typedConfig.command[COMMAND_NAME]) return
+  typedConfig.command[COMMAND_NAME] = {
     description: "Show token usage dashboard",
     template:
       "Run the token_usage tool and respond with the tool output only. If arguments are provided, interpret them as: days=$1, topSessions=$2. Arguments: $ARGUMENTS",
   }
 }
 
-async function renderTokenUsage(args) {
+async function renderTokenUsage(args: TokenUsageArgs): Promise<string> {
   const sinceMs = Date.now() - args.days * DAY_MS
   const mainPath = normalizePath(process.env.OPENCODE_DB_PATH || DEFAULT_MAIN_DB)
   const localPath = normalizePath(process.env.OPENCODE_LOCAL_DB_PATH || DEFAULT_LOCAL_DB)
 
-  const candidates = [
+  const candidates: SourceCandidate[] = [
     { id: "main", path: mainPath, enabled: args.includeMain },
     { id: "local", path: localPath, enabled: args.includeLocal },
   ]
 
-  const sources = []
-  const missing = []
+  const sources: SourceWithDB[] = []
+  const missing: string[] = []
 
   for (const candidate of candidates) {
     if (!candidate.enabled) continue
@@ -255,7 +358,7 @@ async function renderTokenUsage(args) {
     return `No OpenCode databases available for the last ${args.days} days.${hint}`
   }
 
-  const totals = {
+  const totals: Totals = {
     startMs: null,
     endMs: null,
     assistantMessages: 0,
@@ -267,9 +370,9 @@ async function renderTokenUsage(args) {
     cacheWriteTokens: 0,
   }
 
-  const sessionIds = new Set()
-  const modelMap = new Map()
-  const sessionRows = []
+  const sessionIds = new Set<string>()
+  const modelMap = new Map<string, ModelAggregate>()
+  const sessionRows: SessionAggregate[] = []
 
   try {
     for (const source of sources) {
@@ -355,7 +458,7 @@ async function renderTokenUsage(args) {
   const modelRows = Array.from(modelMap.values()).sort((a, b) => b.totalTokens - a.totalTokens)
   const topSessions = sessionRows.sort((a, b) => b.totalTokens - a.totalTokens).slice(0, args.topSessions)
 
-  const sections = []
+  const sections: string[] = []
   sections.push(`TOKEN USAGE (last ${args.days} days)`)
   sections.push(`Window: ${formatTime(totals.startMs)} -> ${formatTime(totals.endMs)}`)
   sections.push(`Sources: ${sourceSummary}`)
@@ -376,7 +479,14 @@ async function renderTokenUsage(args) {
   return sections.join("\n")
 }
 
-export const TokenDashboardPlugin = async () => {
+const tokenArgs = {
+  days: z.number().int().min(1).max(365).default(7),
+  topSessions: z.number().int().min(1).max(20).default(5),
+  includeMain: z.boolean().default(true),
+  includeLocal: z.boolean().default(true),
+}
+
+export const TokenDashboardPlugin: Plugin = async () => {
   return {
     config: async (config) => {
       ensureCommand(config)
@@ -384,26 +494,16 @@ export const TokenDashboardPlugin = async () => {
     tool: {
       token_usage: tool({
         description: "Show token usage dashboard (styled table).",
-        args: {
-          days: z.number().int().min(1).max(365).default(7),
-          topSessions: z.number().int().min(1).max(20).default(5),
-          includeMain: z.boolean().default(true),
-          includeLocal: z.boolean().default(true),
-        },
+        args: tokenArgs,
         async execute(args) {
-          return renderTokenUsage(args)
+          return renderTokenUsage(args as TokenUsageArgs)
         },
       }),
       token_dashboard: tool({
         description: "Alias for token_usage.",
-        args: {
-          days: z.number().int().min(1).max(365).default(7),
-          topSessions: z.number().int().min(1).max(20).default(5),
-          includeMain: z.boolean().default(true),
-          includeLocal: z.boolean().default(true),
-        },
+        args: tokenArgs,
         async execute(args) {
-          return renderTokenUsage(args)
+          return renderTokenUsage(args as TokenUsageArgs)
         },
       }),
     },

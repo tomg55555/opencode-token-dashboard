@@ -4,8 +4,8 @@
   "description": "OpenCode plugin that provides token usage analytics.",
   "license": "MIT",
   "type": "module",
-  "main": "index.js",
-  "exports": "./index.js",
+  "main": "index.ts",
+  "exports": "./index.ts",
   "dependencies": {
     "@opencode-ai/plugin": "^1.2.24",
     "cli-table3": "^0.6.3"
