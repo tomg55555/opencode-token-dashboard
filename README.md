@@ -52,7 +52,7 @@ bun install
 ## Install from npm (recommended for teams)
 
 ```bash
-npm publish --access public
+npm i opencode-token-dashboard
 ```
 
 Add plugin package in OpenCode config `~/.config/opencode/opencode.json`:
