@@ -1,0 +1,13 @@
+{
+  "name": "opencode-token-dashboard",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that provides token usage analytics.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "exports": "./index.js",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.2.24",
+    "cli-table3": "^0.6.3"
+  }
+}
