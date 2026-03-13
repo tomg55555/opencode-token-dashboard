@@ -1,110 +1,108 @@
-# OpenCode Token Dashboard Plugin
+# OpenCode Token Dashboard
 
-OpenCode plugin that adds a styled token analytics dashboard and a slash command.
+[![npm version](https://img.shields.io/npm/v/opencode-token-dashboard)](https://www.npmjs.com/package/opencode-token-dashboard)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## What you get
+`opencode-token-dashboard` is an OpenCode plugin that adds a token analytics dashboard with clear ASCII tables and a ready-to-use slash command.
+
+## Features
 
 - `/token-usage` slash command
 - `token_usage` tool (primary)
 - `token_dashboard` tool (alias)
-- Styled ASCII tables for:
-  - overview totals
-  - model usage breakdown
-  - top sessions by token count
+- Aggregated analytics across one or both OpenCode databases
+- Styled ASCII output for overview, model usage, and top sessions
 
-The plugin reads your local OpenCode databases:
+## Installation (npm recommended)
 
-- `~/.local/share/opencode/opencode.db`
-- `~/.local/share/opencode/opencode-local.db`
+1. Install the package:
 
-## Quick start (local install)
+```bash
+npm install opencode-token-dashboard
+```
 
-1) Install dependencies in this plugin folder:
+2. Add the plugin to your OpenCode config at `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-token-dashboard"]
+}
+```
+
+3. Restart OpenCode.
+
+4. Run:
+
+```text
+/token-usage
+```
+
+## Local development install
+
+Use this path when developing or testing from source.
+
+1. Install dependencies in this repository:
 
 ```bash
 bun install
 ```
 
-2) Add plugin path to your OpenCode config at `~/.config/opencode/opencode.json`:
+2. Reference the local plugin entrypoint in `~/.config/opencode/opencode.json`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "file:///<Full-Plugin-Path>/opencode-token-dashboard/index.ts"
-  ]
+  "plugin": ["file:///<Full-Plugin-Path>/opencode-token-dashboard/index.ts"]
 }
 ```
 
-3) Restart OpenCode.
-4) In a session, run:
+3. Restart OpenCode, then run `/token-usage`.
+
+## Usage
+
+Slash command examples:
 
 ```text
 /token-usage
-```
-
-5) Optional custom range and top sessions:
-
-```text
+/token-usage 14 8
 /token-usage 30 10
 ```
 
-## Install from npm (recommended for teams)
+Tool examples (via prompt):
 
-```bash
-npm i opencode-token-dashboard
-```
-
-Add plugin package in OpenCode config `~/.config/opencode/opencode.json`:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "opencode-token-dashboard"
-  ]
-}
-```
-
-3) Restart OpenCode.
-4) Run the slash command:
-
-```text
-/token-usage
-```
-
-This is the easiest installation path for coding agents and teammates because
-OpenCode handles plugin dependency installation automatically.
-
-## Usage examples
-
-- Slash command:
-  - `/token-usage`
-  - `/token-usage 14 8`
-- Tool call via prompt:
-  - `Run token_usage with days=30 and topSessions=10`
-  - `Run token_dashboard with days=7`
+- `Run token_usage with days=30 and topSessions=10`
+- `Run token_dashboard with days=7`
 
 ## Arguments
 
 `token_usage` and `token_dashboard` support:
 
-- `days` (number, default `7`, min `1`, max `365`)
-- `topSessions` (number, default `5`, min `1`, max `20`)
-- `includeMain` (boolean, default `true`)
-- `includeLocal` (boolean, default `true`)
+| Argument | Type | Default | Range |
+| --- | --- | --- | --- |
+| `days` | number | `7` | `1..365` |
+| `topSessions` | number | `5` | `1..20` |
+| `includeMain` | boolean | `true` | `true/false` |
+| `includeLocal` | boolean | `true` | `true/false` |
 
-For slash usage, positional arguments map as:
+For slash command usage:
 
-- first arg -> `days`
-- second arg -> `topSessions`
+- first positional argument -> `days`
+- second positional argument -> `topSessions`
+
+## Data sources
+
+By default, the plugin reads:
+
+- `~/.local/share/opencode/opencode.db`
+- `~/.local/share/opencode/opencode-local.db`
 
 ## Environment overrides
 
-Use these if your DB files are in non-default locations:
+Use environment variables when databases are in non-default locations:
 
-- `OPENCODE_DB_PATH` (default `~/.local/share/opencode/opencode.db`)
-- `OPENCODE_LOCAL_DB_PATH` (default `~/.local/share/opencode/opencode-local.db`)
+- `OPENCODE_DB_PATH`
+- `OPENCODE_LOCAL_DB_PATH`
 
 Example:
 
@@ -115,16 +113,16 @@ OPENCODE_DB_PATH="/custom/path/opencode.db" opencode
 ## Troubleshooting
 
 - Command not found:
-  - Confirm plugin path in `~/.config/opencode/opencode.json`
-  - Restart OpenCode after config changes
-- Empty dashboard / missing sources:
-  - Verify DB files exist in `~/.local/share/opencode/`
-  - Check custom env paths if you override defaults
-- Dependency errors:
-  - Local plugin path: run `bun install` again in this plugin directory
-  - npm plugin path: remove cached plugin and restart OpenCode
+  - verify plugin entry in `~/.config/opencode/opencode.json`
+  - restart OpenCode after config changes
+- Empty dashboard or missing source data:
+  - confirm database files exist
+  - confirm custom environment variable paths
+- Dependency issues:
+  - local install: run `bun install` again in this repository
+  - npm install: reinstall plugin and restart OpenCode
 
-## Publishing checklist (maintainer)
+## Maintainer release notes
 
 ```bash
 npm whoami
@@ -132,3 +130,7 @@ npm publish --access public
 ```
 
 If `npm whoami` fails, run `npm login` first.
+
+## License
+
+MIT
